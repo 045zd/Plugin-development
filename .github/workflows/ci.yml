@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 测试（Node + Python）
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 校验 manifest 与源码编码
+        run: python tools/validate.py
+
+      - name: 检查扩展语法（只解析，不执行）
+        run: |
+          node --experimental-vm-modules tools/check_syntax.mjs \
+            $(find extension -name '*.js')
+
+      - name: 跑扩展单元/集成测试
+        run: |
+          fail=0
+          for f in tests/test_*.mjs; do
+            echo "::group::$f"
+            if node --experimental-vm-modules "$f"; then
+              echo "OK $f"
+            else
+              echo "::error file=$f::测试失败"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $fail
+
+      - name: 跑邮件代理测试
+        run: python -m unittest discover -s mail-proxy/tests -v
+
+      - name: 校验所有 JSON 格式
+        run: |
+          for f in $(find . -name '*.json' -not -path './.git/*'); do
+            python -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8'))" "$f" \
+              || { echo "::error file=$f::JSON 格式错误"; exit 1; }
+          done
+          echo "所有 JSON 格式正确"
+
+      - name: 确认 manifest 是 Manifest V3 且有版本号
+        run: |
+          python -c "
+          import json, pathlib
+          mf = json.loads(pathlib.Path('extension/manifest.json').read_text('utf-8'))
+          assert mf['manifest_version'] == 3, '必须是 Manifest V3'
+          assert mf['version'], '必须有版本号'
+          print('manifest OK, version =', mf['version'])
+          "

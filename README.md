@@ -13,6 +13,22 @@
 
 ---
 
+## 界面预览
+
+扩展弹窗（点工具栏图标）——按剩余时间排序的待办列表，点「打开」直接跳到对应作业页：
+
+![扩展弹窗](docs/images/popup.png)
+
+设置页——监控、课表过滤、提醒、邮件、登录填充、实验报告检查、数据管理：
+
+![设置页](docs/images/options.png)
+
+> 截图由 `tools/screenshot.mjs` 生成：直接加载真实的 `extension/options/options.html`
+> 与 `extension/popup/popup.html`，注入离线演示数据后截屏，所以界面样式与扩展实际
+> 运行完全一致。改动 UI 后执行 `node tools/screenshot.mjs` 即可重新生成。
+
+---
+
 ## 环境要求
 
 | 组件                      | 要求                         |
