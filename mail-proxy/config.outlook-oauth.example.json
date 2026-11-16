@@ -1,0 +1,16 @@
+{
+  "smtp_host": "smtp.office365.com",
+  "smtp_port": 587,
+  "smtp_user": "your_account@outlook.com",
+  "smtp_pass": "",
+  "mail_from": "your_account@outlook.com",
+  "mail_to": "your_account@outlook.com",
+  "use_ssl": false,
+  "auth_method": "oauth2",
+  "oauth_client_id": "YOUR_ENTRA_APPLICATION_CLIENT_ID",
+  "oauth_tenant": "common",
+  "oauth_scope": "https://outlook.office.com/SMTP.Send offline_access",
+  "oauth_token_file": "oauth_token.json",
+  "heartbeat_timeout_minutes": 180,
+  "port": 8765
+}

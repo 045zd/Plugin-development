@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>学习通截止提醒 - 设置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <header class="page-header">
+    <div class="page-header-inner">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+          <rect x="3" y="4" width="18" height="17" rx="3"></rect>
+          <path d="M8 2v4M16 2v4M3 9h18"></path>
+          <path d="M12 13v3l2 1"></path>
+        </svg>
+      </span>
+      <div class="brand-copy">
+        <h1>学习通截止提醒</h1>
+        <p>监控学习通作业与考试的截止时间，临近截止时用浏览器通知与邮件提醒你。只做提醒，不自动答题、不自动提交、不自动登录。</p>
+      </div>
+      <span class="version-pill" id="uiVersion">v1.2.21</span>
+    </div>
+  </header>
+
+  <main class="page">
+    <div id="loadBanner" class="banner banner-error" role="alert" hidden>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span id="loadBannerText" class="banner-text"></span>
+      <button id="reloadConfigBtn" class="btn btn-small btn-secondary" type="button">重试</button>
+    </div>
+
+    <form id="settingsForm" novalidate>
+      <!-- 监控设置 -->
+      <section class="card" aria-labelledby="monitorHeading">
+        <div class="card-header">
+          <h2 id="monitorHeading">监控设置</h2>
+          <p>决定多久检查一次，以及检查哪些内容。</p>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field">
+              <label for="scanIntervalMinutes">扫描间隔</label>
+              <div class="input-with-unit">
+                <input id="scanIntervalMinutes" type="number" min="15" max="720" step="5" inputmode="numeric" autocomplete="off" aria-describedby="scanIntervalHint">
+                <span class="unit">分钟</span>
+              </div>
+              <p id="scanIntervalHint" class="hint">15 ~ 720 分钟，默认 60 分钟。间隔越短越及时，但访问学习通的次数也越多。</p>
+              <p id="scanIntervalError" class="field-error" hidden></p>
+            </div>
+            <div class="field">
+              <label for="maxCourses">单次扫描最多课程</label>
+              <div class="input-with-unit">
+                <input id="maxCourses" type="number" min="1" max="50" step="1" inputmode="numeric" autocomplete="off" aria-describedby="maxCoursesHint">
+                <span class="unit">门</span>
+              </div>
+              <p id="maxCoursesHint" class="hint">1 ~ 50 门，默认 15 门。课程较多时可适当调大。</p>
+              <p id="maxCoursesError" class="field-error" hidden></p>
+            </div>
+          </div>
+
+          <div class="switch-group">
+            <label class="switch-row">
+              <span class="switch-copy">
+                <span class="switch-title">监控作业</span>
+                <span class="switch-desc">扫描课程中的作业截止时间</span>
+              </span>
+              <span class="switch-control">
+                <input id="checkAssignments" type="checkbox" aria-label="监控作业">
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+            <label class="switch-row">
+              <span class="switch-copy">
+                <span class="switch-title">监控考试</span>
+                <span class="switch-desc">扫描课程中的考试开始与结束时间</span>
+              </span>
+              <span class="switch-control">
+                <input id="checkExams" type="checkbox" aria-label="监控考试">
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+            <label class="switch-row">
+              <span class="switch-copy">
+                <span class="switch-title">自动打开大学搜题酱 AI 会话</span>
+                <span class="switch-desc">跳转到作答页后，自动点击「大学搜题酱」的「AI 会话」按钮。需已安装该插件；未安装时无影响。</span>
+              </span>
+              <span class="switch-control">
+                <input id="dxAiChatAutoOpen" type="checkbox" aria-label="自动打开大学搜题酱 AI 会话">
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+            <label class="switch-row">
+              <span class="switch-copy">
+                <span class="switch-title">显示已截止/时间未知的未交项</span>
+                <span class="switch-desc">在扩展弹窗底部显示漏交作业分组。默认关闭，避免占用页面；作业重新开放后仍会自动回到主待办。</span>
+              </span>
+              <span class="switch-control">
+                <input id="showExpiredItems" type="checkbox" aria-label="显示已截止/时间未知的未交项">
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- 课表课程过滤 -->
+      <section class="card" aria-labelledby="scheduleHeading">
+        <div class="card-header">
+          <h2 id="scheduleHeading">课表课程过滤</h2>
+          <p>上传本学期课表（Excel / CSV），只监控课表里的课程，避免历史学期已结束的课程混入提醒。</p>
+        </div>
+        <div class="card-body">
+          <div class="switch-group">
+            <label class="switch-row">
+              <span class="switch-copy">
+                <span class="switch-title">只监控课表内的课程</span>
+                <span class="switch-desc">开启后，扫描结果会过滤掉课表以外的课程；课程名无法确定的条目仍会保留</span>
+              </span>
+              <span class="switch-control">
+                <input id="courseFilterEnabled" type="checkbox" aria-label="只监控课表内的课程">
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+
+          <div class="schedule-upload">
+            <input id="scheduleFileInput" type="file" accept=".xlsx,.csv,.txt" class="visually-hidden">
+            <button id="scheduleUploadBtn" class="btn btn-secondary" type="button">上传课表文件</button>
+            <span class="hint">支持 Excel .xlsx 或 CSV 文件；解析后勾选课程即可。</span>
+          </div>
+
+          <div id="scheduleCandidatesWrap" class="schedule-panel" hidden>
+            <div class="schedule-panel-head">
+              <h3>识别到的候选课程</h3>
+              <div class="schedule-panel-actions">
+                <button id="scheduleSelectAllBtn" class="btn-link" type="button">全选</button>
+                <button id="scheduleSelectNoneBtn" class="btn-link" type="button">全不选</button>
+              </div>
+            </div>
+            <div id="scheduleCandidates" class="schedule-candidates"></div>
+            <p id="scheduleParseHint" class="hint"></p>
+          </div>
+
+          <div class="field schedule-manual">
+            <label for="scheduleManualInput">手动添加课程名</label>
+            <div class="input-with-unit">
+              <input id="scheduleManualInput" type="text" placeholder="例如：高等数学（多个用逗号或顿号分隔）" autocomplete="off">
+              <button id="scheduleAddManualBtn" class="btn btn-secondary" type="button">添加</button>
+            </div>
+          </div>
+
+          <div class="schedule-selected">
+            <div class="schedule-panel-head">
+              <h3>已选择的课程（<span id="scheduleCount">0</span>）</h3>
+              <button id="scheduleClearBtn" class="btn-link" type="button">清空</button>
+            </div>
+            <div id="scheduleSelectedList" class="schedule-chips"></div>
+            <p id="scheduleEmptyHint" class="hint">还没有课程。上传课表或手动添加后，这里会显示已选择的课程。</p>
+          </div>
+          <p id="scheduleError" class="field-error" hidden></p>
+        </div>
+      </section>
+
+      <!-- 提醒设置 -->
+      <section class="card" aria-labelledby="reminderHeading">
+        <div class="card-header">
+          <h2 id="reminderHeading">提醒设置</h2>
+          <p>剩余时间低于所选阈值时提醒一次。</p>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <span class="field-label" id="reminderHoursLabel">提醒阈值</span>
+            <p class="hint">可多选，至少选择一项。例如勾选“24 小时”，会在截止前 24 小时内提醒一次。</p>
+            <div id="reminderHoursGroup" class="check-group" role="group" aria-labelledby="reminderHoursLabel">
+              <label class="check-pill">
+                <input type="checkbox" data-hour="72">
+                <span>72 小时</span>
+              </label>
+              <label class="check-pill">
+                <input type="checkbox" data-hour="24">
+                <span>24 小时</span>
+              </label>
+              <label class="check-pill">
+                <input type="checkbox" data-hour="6">
+                <span>6 小时</span>
+              </label>
+              <label class="check-pill">
+                <input type="checkbox" data-hour="1">
+                <span>1 小时</span>
+              </label>
+            </div>
+            <p id="reminderHoursError" class="field-error" hidden></p>
+          </div>
+
+          <div class="switch-group">
+            <label class="switch-row">
+              <span class="switch-copy">
+                <span class="switch-title">已过期也提醒一次</span>
+                <span class="switch-desc">任务已过期时仍发送一次提醒，避免错过补交</span>
+              </span>
+              <span class="switch-control">
+                <input id="expiredAlert" type="checkbox" aria-label="已过期也提醒一次">
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+            <label class="switch-row">
+              <span class="switch-copy">
+                <span class="switch-title">浏览器通知</span>
+                <span class="switch-desc">使用系统通知弹出截止提醒（需在浏览器中允许通知）</span>
+              </span>
+              <span class="switch-control">
+                <input id="browserNotifications" type="checkbox" aria-label="浏览器通知">
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- 邮件通知 -->
+      <section class="card" aria-labelledby="emailHeading">
+        <div class="card-header">
+          <h2 id="emailHeading">邮件通知</h2>
+          <p>通过本机的 Python 邮件代理发送提醒邮件，扩展不会直接连接外部邮件服务器。</p>
+        </div>
+        <div class="card-body">
+          <div class="switch-group">
+            <label class="switch-row">
+              <span class="switch-copy">
+                <span class="switch-title">启用邮件通知</span>
+                <span class="switch-desc">扫描到临近截止或登录失效时发送邮件</span>
+              </span>
+              <span class="switch-control">
+                <input id="emailEnabled" type="checkbox" aria-label="启用邮件通知">
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label for="mailProxyUrl">邮件代理地址</label>
+            <div class="input-with-action">
+              <input id="mailProxyUrl" type="url" placeholder="http://127.0.0.1:8765" spellcheck="false" autocomplete="off" aria-describedby="mailProxyUrlHint">
+              <button id="testEmailBtn" class="btn btn-secondary" type="button">发送测试邮件</button>
+            </div>
+            <p id="mailProxyUrlHint" class="hint">默认 http://127.0.0.1:8765。只允许本机地址，扩展不会请求外部服务器。</p>
+            <p id="mailProxyUrlError" class="field-error" hidden></p>
+          </div>
+
+          <p id="mailResult" class="mail-result" role="status" hidden></p>
+
+          <details class="help-details">
+            <summary>如何配置本地邮件代理？</summary>
+            <div class="help-body">
+              <ol>
+                <li>打开项目的 <code>mail-proxy</code> 目录，把 <code>config.example.json</code> 复制为 <code>config.json</code>。</li>
+                <li>填写 <code>smtp_host</code>、<code>smtp_port</code>、<code>smtp_user</code>、<code>smtp_pass</code>、<code>mail_from</code>、<code>mail_to</code>。</li>
+                <li>双击 <code>start.bat</code> 启动代理，保持窗口运行（默认监听 127.0.0.1:8765）。</li>
+                <li>回到本页点击「发送测试邮件」验证配置是否可用。</li>
+              </ol>
+              <p class="hint">SMTP 账号密码只保存在你自己的电脑上，扩展不会读取或上传。</p>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- 登录填充 -->
+      <section class="card" aria-labelledby="loginHeading">
+        <div class="card-header">
+          <h2 id="loginHeading">登录填充</h2>
+          <p>登录学习通时自动填入账号。密码由 Edge 密码管理器负责，扩展不保存密码。</p>
+        </div>
+        <div class="card-body">
+          <div class="notice-inline">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+            <p>扩展只保存账号，<strong>不保存密码</strong>。请在登录学习通时让 Edge 提示并保存密码（设置 → 个人资料 → 密码），下次登录时由浏览器自动填充密码。</p>
+          </div>
+
+          <div class="switch-group">
+            <label class="switch-row">
+              <span class="switch-copy">
+                <span class="switch-title">在登录页自动填充账号</span>
+                <span class="switch-desc">打开学习通登录页时，自动填入下面记住的账号</span>
+              </span>
+              <span class="switch-control">
+                <input id="autoFillAccount" type="checkbox" aria-label="在登录页自动填充账号">
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label for="rememberedAccount">记住账号</label>
+            <input id="rememberedAccount" type="text" maxlength="64" spellcheck="false" autocomplete="off" placeholder="手机号或超星号" aria-describedby="rememberedAccountHint">
+            <p id="rememberedAccountHint" class="hint">仅用于学习通登录页的账号输入框，留空则只启用自动填充、不填写内容。</p>
+            <p id="rememberedAccountError" class="field-error" hidden></p>
+          </div>
+
+          <p class="hint hint-strong">在 Edge 设置中保存学习通密码：设置 → 个人资料 → 密码，或登录时选择“保存密码”。扩展不会读取 Edge 保存的密码。</p>
+        </div>
+      </section>
+
+      <!-- 实验报告检查 -->
+      <section class="card" aria-labelledby="reportCheckHeading">
+        <div class="card-header">
+          <h2 id="reportCheckHeading">实验报告检查</h2>
+          <p>检查已提交的实验报告：是否真的提交了内容、报告栏目是否空白、课程名称是否与条目一致。支持 Word（.doc/.docx）与 PDF 正文解析。检查会在后台逐个打开作业详情，通常需要几十秒。</p>
+        </div>
+        <div class="card-body">
+          <div class="report-check-actions">
+            <button id="checkReportsBtn" class="btn btn-secondary" type="button">开始检查</button>
+            <span id="reportCheckStatus" class="hint" role="status"></span>
+          </div>
+          <label class="switch-row report-check-option">
+            <span class="switch-copy">
+              <span class="switch-title">包含已过截止时间的作业</span>
+              <span class="switch-desc">默认只检查仍在提交期内的实验报告；已截止的作业通常没有可检查的提交内容</span>
+            </span>
+            <span class="switch-control">
+              <input id="reportCheckIncludePast" type="checkbox" aria-label="包含已过截止时间的作业">
+              <span class="track" aria-hidden="true"></span>
+            </span>
+          </label>
+          <ul id="reportCheckResults" class="report-check-list"></ul>
+        </div>
+      </section>
+
+      <!-- 数据管理 -->
+      <section class="card" aria-labelledby="dataHeading">
+        <div class="card-header">
+          <h2 id="dataHeading">数据管理</h2>
+          <p>清理本地缓存，或把设置恢复为默认值。</p>
+        </div>
+        <div class="card-body">
+          <div class="data-actions">
+            <div class="data-action">
+              <div class="data-action-copy">
+                <h3>清空缓存数据</h3>
+                <p>删除最近一次扫描的作业/考试列表和已提醒记录，不会影响设置。</p>
+              </div>
+              <button id="clearItemsBtn" class="btn btn-secondary" type="button">清空缓存</button>
+            </div>
+            <div class="data-action">
+              <div class="data-action-copy">
+                <h3>恢复默认设置</h3>
+                <p>把本页所有设置恢复为默认值并立即保存。</p>
+              </div>
+              <button id="resetDefaultsBtn" class="btn btn-secondary" type="button">恢复默认</button>
+            </div>
+            <div class="data-action">
+              <div class="data-action-copy">
+                <h3>复制诊断数据</h3>
+                <p>复制最近一次采集的原始解析数据（只有作业标题、状态文本和页面结构标记，不含账号密码、cookie）。状态识别不对或列表为空时，把它发给我即可定位。</p>
+              </div>
+              <button id="copyDebugBtn" class="btn btn-secondary" type="button">复制诊断数据</button>
+            </div>
+          </div>
+          <p id="debugResult" class="save-hint" hidden></p>
+        </div>
+      </section>
+
+      <div class="save-bar">
+        <p id="saveHint" class="save-hint">设置只保存在本机浏览器的扩展存储中。</p>
+        <button id="saveBtn" class="btn btn-primary btn-lg" type="submit">保存设置</button>
+      </div>
+    </form>
+  </main>
+
+  <footer class="page-footer">
+    <span id="footerVersion">学习通截止提醒 · v1.2.21</span>
+    <span>仅截止提醒，不自动答题、不自动提交、不自动登录</span>
+  </footer>
+
+  <script src="../shared/xlsx.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

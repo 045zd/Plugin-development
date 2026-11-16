@@ -1,0 +1,16 @@
+{
+  "smtp_host": "smtp.qq.com",
+  "smtp_port": 465,
+  "smtp_user": "your_account@qq.com",
+  "smtp_pass": "",
+  "mail_from": "your_account@qq.com",
+  "mail_to": "your_account@qq.com",
+  "use_ssl": true,
+  "auth_method": "password",
+  "oauth_client_id": "",
+  "oauth_tenant": "common",
+  "oauth_scope": "https://outlook.office.com/SMTP.Send offline_access",
+  "oauth_token_file": "oauth_token.json",
+  "heartbeat_timeout_minutes": 180,
+  "port": 8765
+}
